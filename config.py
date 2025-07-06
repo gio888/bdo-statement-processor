@@ -5,7 +5,7 @@ from datetime import datetime
 
 # File processing settings
 DEFAULT_INPUT_DIR = "/Users/gio/Library/CloudStorage/GoogleDrive-gbacareza@gmail.com/My Drive/Money/BDO"
-FILE_PATTERN = r"My_Transactions BDO (Checking|Savings) (\d+) (\d{4}-\d{2}-\d{2})\.csv"
+FILE_PATTERN = r"^My_Transactions BDO (Checking|Savings) (\d+) (\d{4}-\d{2}-\d{2})\.csv$"
 MIN_PROCESS_DATE = datetime(2024, 2, 1)
 
 # Account mappings
@@ -32,11 +32,19 @@ EXPECTED_COLUMNS = [
 
 # Alternative column names for fuzzy matching
 COLUMN_ALTERNATIVES = {
-    "Posting Date": ["Date", "Transaction Date", "Post Date"],
+    "Posting Date": ["Date", "Transaction Date", "Post Date", "Book date"],
     "Description": ["Transaction Description", "Details", "Particulars"],
     "Debit Amount": ["Debit", "Debit Amt", "Withdrawal"],
     "Credit Amount": ["Credit", "Credit Amt", "Deposit"],
     "Running Balance": ["Balance", "Account Balance", "Current Balance"]
+}
+
+# New CSV format (2025-03 onwards) column mappings
+NEW_FORMAT_COLUMNS = {
+    "Book date": "Posting Date",
+    "Description": "Description", 
+    "Amount": "Amount",
+    "Credit/debit indicator": "Credit/debit indicator"
 }
 
 # Data validation settings

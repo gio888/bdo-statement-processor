@@ -43,7 +43,7 @@ class MonthlyProcessor:
         
     def process_monthly(self, target_month: str = None) -> Dict:
         """
-        Process new files for monthly workflow.
+        Process unprocessed files for monthly workflow.
         
         Args:
             target_month: Target month in YYYY-MM format (auto-detected if None)
@@ -53,71 +53,83 @@ class MonthlyProcessor:
         """
         self.logger.info("Starting monthly BDO statement processing")
         
-        # Discover new files
-        new_files = self._discover_new_files()
-        self.stats['new_files_found'] = len(new_files)
+        # Discover unprocessed months
+        unprocessed_months = self._discover_unprocessed_months()
         
-        if not new_files:
-            print("✅ No new files found to process!")
+        if not unprocessed_months:
+            print("✅ No unprocessed months found!")
             return self.stats
         
-        # Detect target month
-        detected_month = self._detect_month_from_files(new_files)
-        if target_month:
-            target_month = target_month
-        else:
-            target_month = detected_month
-            
-        # Confirm with user
-        if detected_month and not self._confirm_month(detected_month):
-            # Ask user for correct month
-            target_month = self._get_user_month()
-            
-        self.stats['target_month'] = target_month
+        # Display unprocessed months
+        sorted_months = sorted(unprocessed_months.keys())
+        print(f"\n📅 Found {len(sorted_months)} unprocessed months:")
+        for month in sorted_months:
+            files = unprocessed_months[month]
+            account_types = {metadata['account_type'] for _, metadata in files}
+            account_info = " + ".join(sorted(account_types))
+            print(f"   - {month} ({len(files)} files: {account_info})")
         
-        # Filter files for target month
-        month_files = self._filter_files_by_month(new_files, target_month)
-        
-        if not month_files:
-            print(f"❌ No files found for {target_month}")
-            return self.stats
+        # Process all months chronologically
+        total_processed = 0
+        for month in sorted_months:
+            month_files = unprocessed_months[month]
+            print(f"\n🔄 Processing {month}...")
             
-        # Check for missing accounts
-        self._check_missing_accounts(month_files, target_month)
-        
-        # Process files and combine
-        combined_transactions = self._process_and_combine_files(month_files)
-        
-        if combined_transactions is None or combined_transactions.empty:
-            print("❌ No transactions to process")
-            return self.stats
+            # Check for missing accounts
+            self._check_missing_accounts(month_files, month)
             
-        # Generate output file
-        output_path = self._generate_monthly_output_path(target_month)
-        
-        if not self.dry_run:
-            success = self._write_monthly_output(combined_transactions, output_path)
-            if success:
-                self.stats['output_file'] = str(output_path)
-        else:
-            print(f"DRY RUN: Would write {len(combined_transactions)} transactions to {output_path.name}")
+            # Process files and combine
+            combined_transactions = self._process_and_combine_files(month_files)
             
+            if combined_transactions is None or combined_transactions.empty:
+                print(f"❌ No transactions found for {month}")
+                continue
+                
+            # Generate output file
+            output_path = self._generate_monthly_output_path(month)
+            
+            if not self.dry_run:
+                success = self._write_monthly_output(combined_transactions, output_path)
+                if success:
+                    print(f"✅ Created: {output_path.name}")
+                    total_processed += 1
+            else:
+                print(f"DRY RUN: Would write {len(combined_transactions)} transactions to {output_path.name}")
+                total_processed += 1
+        
+        # Update stats
+        self.stats['months_processed'] = total_processed
+        self.stats['total_months_found'] = len(sorted_months)
+        
+        print(f"\n📊 SUMMARY: Processed {total_processed} of {len(sorted_months)} months")
         self._log_monthly_summary()
         return self.stats
         
-    def _discover_new_files(self) -> List[Tuple[Path, dict]]:
-        """Discover new CSV files that haven't been processed yet."""
+    def _discover_unprocessed_months(self) -> Dict[str, List[Tuple[Path, dict]]]:
+        """Discover months that haven't been processed yet."""
         all_files = self.file_manager.discover_files()
-        new_files = []
         
+        # Group files by month
+        files_by_month = {}
         for file_path, metadata in all_files:
-            # Check if corresponding for_import file exists
-            output_path = self.file_manager.generate_output_path(file_path, metadata)
-            if not output_path.exists():
-                new_files.append((file_path, metadata))
+            month_key = metadata['date'].strftime('%Y-%m')
+            if month_key not in files_by_month:
+                files_by_month[month_key] = []
+            files_by_month[month_key].append((file_path, metadata))
+        
+        # Find unprocessed months
+        unprocessed_months = {}
+        for month, files in files_by_month.items():
+            if not self._is_month_processed(month):
+                unprocessed_months[month] = files
                 
-        self.logger.info(f"Found {len(new_files)} new files to process")
-        return new_files
+        self.logger.info(f"Found {len(unprocessed_months)} unprocessed months")
+        return unprocessed_months
+    
+    def _is_month_processed(self, target_month: str) -> bool:
+        """Check if a month has already been processed."""
+        monthly_output = self.file_manager.input_dir / f"for_import_My_Transactions BDO {target_month}.csv"
+        return monthly_output.exists()
         
     def _detect_month_from_files(self, files: List[Tuple[Path, dict]]) -> Optional[str]:
         """Detect the target month from file dates."""
@@ -228,19 +240,11 @@ class MonthlyProcessor:
         # Convert date back to M/D/YYYY format
         transactions['Date'] = pd.to_datetime(transactions['Date']).dt.strftime('%-m/%-d/%Y')
         
-        # Set Transfer Account to empty (will be filled manually)
-        transactions['Transfer Account'] = ''
-        
         return transactions
         
     def _generate_monthly_output_path(self, target_month: str) -> Path:
         """Generate output file path for monthly combined file."""
-        # Get last day of month
-        year, month = map(int, target_month.split('-'))
-        last_day = calendar.monthrange(year, month)[1]
-        date_str = f"{year}-{month:02d}-{last_day:02d}"
-        
-        filename = f"for_import_My_Transactions BDO {date_str}.csv"
+        filename = f"for_import_My_Transactions BDO {target_month}.csv"
         return self.file_manager.input_dir / filename
         
     def _write_monthly_output(self, transactions: pd.DataFrame, output_path: Path) -> bool:
@@ -262,23 +266,14 @@ class MonthlyProcessor:
             
     def _log_monthly_summary(self):
         """Log monthly processing summary."""
-        print(f"\n📊 MONTHLY PROCESSING SUMMARY")
-        print("=" * 40)
-        print(f"Target month: {self.stats['target_month']}")
-        print(f"New files found: {self.stats['new_files_found']}")
-        print(f"Files processed: {self.stats['files_processed']}")
-        print(f"Files failed: {self.stats['files_failed']}")
-        print(f"Transactions processed: {self.stats['transactions_processed']}")
+        months_processed = self.stats.get('months_processed', 0)
+        total_months = self.stats.get('total_months_found', 0)
         
-        if self.stats['missing_accounts']:
-            print(f"Missing accounts: {', '.join(self.stats['missing_accounts'])}")
-            
-        if self.stats['output_file']:
-            print(f"Output file: {Path(self.stats['output_file']).name}")
-            
+        self.logger.info(f"Monthly processing completed: {months_processed}/{total_months} months processed")
+        self.logger.info(f"Total files processed: {self.stats['files_processed']}")
+        self.logger.info(f"Total transactions processed: {self.stats['transactions_processed']}")
+        
         if self.stats['errors']:
-            print(f"\nErrors encountered:")
+            self.logger.error(f"Errors encountered: {len(self.stats['errors'])}")
             for error in self.stats['errors']:
-                print(f"  - {error}")
-                
-        self.logger.info("Monthly processing completed")
+                self.logger.error(f"  - {error}")

@@ -1,37 +1,43 @@
-# BDO Statement Processor
+# BDO Statement Processor v2.0
 
-A robust Python application to process BDO bank statement CSV files, extract transaction data, and prepare them for import into accounting software.
+A robust Python application to process BDO bank statement CSV files, extract transaction data, and prepare them for import into accounting software. Automatically handles multiple BDO CSV formats and combines checking/savings transactions into unified monthly reports.
 
 ## Quick Start (Monthly Workflow)
 
 ```bash
 # Setup (one-time)
-git clone https://github.com/gio888/bdo-statement-processor
-cd bdo-statement-processor
+cd /Users/gio/Code/bdo-statement-processor
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Monthly processing
+# Monthly processing (processes all unprocessed months automatically)
 python main.py --monthly
 ```
 
 📖 **[See MONTHLY_WORKFLOW.md for detailed instructions](MONTHLY_WORKFLOW.md)**
 
-## Features
+## ✨ Version 2.0 Features
 
+### 🚀 New in v2.0
+- **Combined Monthly Output**: Single output file per month combining both checking and savings transactions
+- **Dual CSV Format Support**: Automatically handles both legacy (pre-2025-03) and new BDO CSV formats
+- **Smart Month Detection**: Automatically detects and processes all unprocessed months chronologically
+- **Enhanced Transfer Account Mapping**: Automatically maps interest transactions to appropriate accounts
+- **Intelligent Processing**: Only processes actual input files, ignores previously processed outputs
+
+### 📊 Core Features
 - **Automated File Discovery**: Scans for BDO CSV files matching the expected naming pattern
 - **Smart CSV Parsing**: Dynamically detects header rows and handles various CSV formats
-- **Date Filtering**: Processes files from February 2024 onwards by default
+- **Date Format Support**: Handles multiple date formats (`Mar 31, 2025`, `30-06-2025`, etc.)
 - **Account Mapping**: Automatically maps account types to accounting software categories
-- **Backup Management**: Creates timestamped backups of existing processed files
 - **Comprehensive Logging**: Detailed logging with configurable levels
 - **Dry Run Mode**: Preview what would be processed without making changes
 - **Error Handling**: Graceful error handling with detailed reporting
 
 ## Installation
 
-1. Clone or download the project:
+1. Navigate to project directory:
    ```bash
    cd /Users/gio/Code/bdo-statement-processor
    ```
@@ -41,108 +47,154 @@ python main.py --monthly
    pip install -r requirements.txt
    ```
 
-3. Make the main script executable:
-   ```bash
-   chmod +x main.py
-   ```
-
 ## Usage
 
-### Basic Usage
+### Recommended: Monthly Workflow
 
-Process all eligible BDO CSV files with default settings:
+Process all unprocessed months automatically:
 ```bash
-python main.py
+python main.py --monthly
 ```
 
-### Command Line Options
+**What it does:**
+- Detects all months with unprocessed files
+- Processes them chronologically 
+- Combines checking + savings into single monthly files
+- Shows clear progress and summary
+
+### Legacy: Individual File Processing
 
 ```bash
-# Use custom input directory
-python main.py --input-dir "/path/to/bdo/files"
-
-# Process files from specific date
-python main.py --from-date "2024-03-01"
-
-# Dry run to see what would be processed
-python main.py --dry-run
-
-# Enable debug logging
-python main.py --log-level DEBUG
+# Process all eligible files
+python main.py
 
 # Process specific files
 python main.py --files "file1.csv" "file2.csv"
 
-# Use custom log file
-python main.py --log-file "/path/to/custom.log"
-```
+# Process files from specific date
+python main.py --from-date "2024-03-01"
 
-### Help
+# Dry run to preview
+python main.py --dry-run
 
-```bash
-python main.py --help
+# Debug mode
+python main.py --log-level DEBUG
 ```
 
 ## File Requirements
 
 ### Input Files
 
-The application expects BDO CSV files with this naming pattern:
+BDO CSV files with this naming pattern:
 ```
 My_Transactions BDO [Checking|Savings] [account_number] YYYY-MM-DD.csv
 ```
 
-Examples:
-- `My_Transactions BDO Checking 007310159087 2024-02-29.csv`
-- `My_Transactions BDO Savings 007310159087 2024-03-15.csv`
+**Examples:**
+- `My_Transactions BDO Checking 007318007064 2025-06-30.csv`
+- `My_Transactions BDO Savings 007310159087 2025-06-30.csv`
 
-### Input Directory
+### Supported CSV Formats
 
-By default, the application looks for files in:
-```
-/Users/gio/Library/CloudStorage/GoogleDrive-gbacareza@gmail.com/My Drive/Money/BDO
-```
+The system automatically detects and processes:
 
-You can specify a different directory using the `--input-dir` option.
+1. **Legacy Format** (pre-2025-03):
+   - Date: `Feb 29, 2024`
+   - Columns: `Posting Date`, `Debit Amount`, `Credit Amount`
+
+2. **New Format v1** (2025-03):
+   - Date: `Mar 31, 2025`  
+   - Columns: `Book date`, `Amount`, `Credit/debit indicator`
+
+3. **New Format v2** (2025-04+):
+   - Date: `30-06-2025`
+   - Columns: `Book date`, `Amount`, `Credit/debit indicator`
 
 ## Output
 
-### Processed Files
+### Monthly Combined Files
 
-The application generates CSV files with this naming pattern:
+**New v2.0 Format:**
 ```
-for_import_My_Transactions BDO [Checking|Savings] [account_number] YYYY-MM-DD.csv
+for_import_My_Transactions BDO YYYY-MM.csv
 ```
 
-### Output Format
+**Examples:**
+- `for_import_My_Transactions BDO 2025-06.csv` (June 2025 - all accounts combined)
+- `for_import_My_Transactions BDO 2025-05.csv` (May 2025 - all accounts combined)
 
-The processed CSV files contain these columns:
-- **Date**: Transaction date in YYYY-MM-DD format
-- **Description**: Cleaned transaction description
-- **Debit**: Debit amount (empty string if none)
-- **Credit**: Credit amount (empty string if none)
-- **Account**: Mapped account category
-- **Transfer Account**: Empty (to be filled manually)
+### Output Structure
+
+Each monthly file contains:
+```csv
+Date,Description,Debit,Credit,Account,Transfer Account
+6/30/2025,INTEREST WITHHELD,0.62,,Assets:Current Assets:Banks Local:BDO Current,Expenses:Banking Costs:Interest
+6/30/2025,INTEREST PAY SYS-GEN,,3.10,Assets:Current Assets:Banks Local:BDO Current,Income:Interest Income
+6/30/2025,FT-NDBWEB-20250601-46189953 DBFT,156079.25,,Assets:Current Assets:Banks Local:BDO Current,
+6/30/2025,INTEREST WITHHELD,0.31,,Assets:Current Assets:Banks Local:BDO Savings,Expenses:Banking Costs:Interest
+6/30/2025,INTEREST PAY SYS-GEN,,1.56,Assets:Current Assets:Banks Local:BDO Savings,Income:Interest Income
+```
 
 ### Account Mappings
 
 - **Checking** → `Assets:Current Assets:Banks Local:BDO Current`
 - **Savings** → `Assets:Current Assets:Banks Local:BDO Savings`
 
+### Transfer Account Auto-Mapping
+
+- **Interest Withheld** → `Expenses:Banking Costs:Interest`
+- **Interest Pay** → `Income:Interest Income`
+- **Other transactions** → Empty (for manual coding)
+
+## Workflow Example
+
+### Typical Monthly Processing (July 6, 2025)
+
+```bash
+$ python main.py --monthly
+
+📅 Found 3 unprocessed months:
+   - 2025-04 (2 files: Checking + Savings)
+   - 2025-05 (2 files: Checking + Savings)  
+   - 2025-06 (2 files: Checking + Savings)
+
+🔄 Processing 2025-04...
+✅ Processed 2 transactions from My_Transactions BDO Checking 007318007064 2025-04-30.csv
+✅ Processed 2 transactions from My_Transactions BDO Savings 007310159087 2025-04-30.csv
+✅ Created: for_import_My_Transactions BDO 2025-04.csv
+
+🔄 Processing 2025-05...
+✅ Processed 3 transactions from My_Transactions BDO Checking 007318007064 2025-05-31.csv
+✅ Processed 2 transactions from My_Transactions BDO Savings 007310159087 2025-05-31.csv
+✅ Created: for_import_My_Transactions BDO 2025-05.csv
+
+🔄 Processing 2025-06...
+✅ Processed 3 transactions from My_Transactions BDO Checking 007318007064 2025-06-30.csv
+✅ Processed 5 transactions from My_Transactions BDO Savings 007310159087 2025-06-30.csv
+✅ Created: for_import_My_Transactions BDO 2025-06.csv
+
+📊 SUMMARY: Processed 3 of 3 months
+```
+
 ## Configuration
 
 ### Settings
 
-Key configuration options are in `config.py`:
+Key configuration options in `config.py`:
 
 - `DEFAULT_INPUT_DIR`: Default directory to scan for files
 - `MIN_PROCESS_DATE`: Minimum date to process files from (2024-02-01)
 - `ACCOUNT_MAPPINGS`: Account type to category mappings
-- `FILE_PATTERN`: Regular expression for matching filenames
+- `FILE_PATTERN`: Regex pattern for matching input filenames (excludes processed files)
 
-### Logging
+### Input Directory
 
-Logs are written to `logs/bdo_processor.log` by default. The log level can be adjusted using the `--log-level` option.
+Default location:
+```
+/Users/gio/Library/CloudStorage/GoogleDrive-gbacareza@gmail.com/My Drive/Money/BDO
+```
+
+Override with: `--input-dir "/path/to/bdo/files"`
 
 ## Project Structure
 
@@ -150,18 +202,20 @@ Logs are written to `logs/bdo_processor.log` by default. The log level can be ad
 bdo-statement-processor/
 ├── src/
 │   ├── __init__.py
-│   ├── processor.py          # Main processing orchestration
-│   ├── parser.py            # CSV parsing with dynamic header detection
-│   ├── file_manager.py      # File operations and backup handling
-│   └── utils.py             # Utility functions and validation
+│   ├── processor.py          # Individual file processing
+│   ├── monthly_processor.py  # Monthly workflow orchestration
+│   ├── parser.py            # Dual-format CSV parsing
+│   ├── file_manager.py      # File operations and discovery
+│   └── utils.py             # Utility functions
 ├── tests/
 │   ├── __init__.py
 │   ├── test_processor.py    # Unit tests
-│   └── sample_data/         # Sample CSV files for testing
-├── logs/                    # Log files directory
+│   └── sample_data/         # Test data
+├── logs/                    # Application logs
 ├── config.py               # Configuration settings
-├── main.py                # Entry point
-├── requirements.txt       # Python dependencies
+├── main.py                # CLI entry point
+├── requirements.txt       # Dependencies
+├── MONTHLY_WORKFLOW.md    # Detailed workflow guide
 └── README.md             # This file
 ```
 
@@ -172,66 +226,49 @@ Run the test suite:
 python -m pytest tests/
 ```
 
-Or run specific tests:
-```bash
-python -m unittest tests.test_processor
-```
-
-## Error Handling
-
-The application handles various error conditions gracefully:
-
-- **Missing Files**: Skips files that don't exist or are inaccessible
-- **Invalid CSV Format**: Logs warnings and continues with other files
-- **Date Parsing Errors**: Attempts multiple date formats before giving up
-- **Empty Files**: Detects and skips files with no transaction data
-- **Encoding Issues**: Tries multiple encodings to read CSV files
-
-## Backup Strategy
-
-When processing files, the application:
-
-1. Checks if an output file already exists
-2. Creates a timestamped backup with the format: `original_filename_backup_YYYYMMDD_HHMMSS.csv`
-3. Writes the new processed file
-
-This ensures no data is lost during reprocessing.
-
-## Monthly Processing Workflow
-
-For regular monthly processing:
-
-1. Download new BDO CSV files to the input directory
-2. Run the processor: `python main.py`
-3. Review the processing report for any issues
-4. Import the generated `for_import_*.csv` files into your accounting software
-
 ## Troubleshooting
 
 ### Common Issues
 
-1. **No files found**: Check the input directory path and file naming pattern
-2. **Permission errors**: Ensure the application has read/write access to the directories
-3. **Date parsing errors**: Verify the date format in the CSV files matches expected patterns
-4. **Empty output**: Check that the CSV files contain transaction data in the expected format
+1. **No files found**: Check input directory path and file naming pattern
+2. **Date parsing errors**: System now handles multiple formats automatically
+3. **Missing months**: System shows which months are unprocessed
+4. **Empty transactions**: Normal for months with no banking activity
 
 ### Debug Mode
 
-For detailed troubleshooting, run with debug logging:
 ```bash
-python main.py --log-level DEBUG
+python main.py --monthly --log-level DEBUG
 ```
 
-This will provide verbose output about file processing steps.
+### Monthly Processing Issues
+
+If monthly processing fails:
+1. Check that input files follow naming convention
+2. Verify files aren't corrupted
+3. Run with `--dry-run` to preview
+4. Check logs in `logs/bdo_processor.log`
 
 ## Dependencies
 
-- **pandas**: For CSV parsing and data manipulation
-- **python-dateutil**: For flexible date parsing
+- **pandas**: CSV parsing and data manipulation
+- **python-dateutil**: Flexible date parsing
 
-## Version
+## Changelog
 
-BDO Statement Processor 1.0.0
+### v2.0.0 (July 2025)
+- **BREAKING**: Combined monthly output format
+- **NEW**: Dual CSV format support (legacy + new BDO formats)
+- **NEW**: Smart unprocessed month detection
+- **NEW**: Automatic transfer account mapping for interest transactions
+- **NEW**: Enhanced date format support (`DD-MM-YYYY`, `Mar 31, 2025`)
+- **IMPROVED**: File discovery excludes processed files
+- **IMPROVED**: Monthly workflow with progress tracking
+
+### v1.0.0 (Initial Release)
+- Basic CSV processing
+- Individual file output
+- Legacy format support
 
 ## License
 

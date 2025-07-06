@@ -138,28 +138,16 @@ class BDOParser:
         df.columns = final_columns
         transaction_df = df.iloc[header_row + 1:].copy()
         
-        # Map columns to expected names
-        column_mapping = self._map_columns(transaction_df.columns)
-        if not column_mapping:
-            self.logger.error("Could not map required columns")
-            return None
+        # Detect format and process accordingly
+        if self._is_new_format(transaction_df.columns):
+            self.logger.info("Detected new CSV format (2025-03 onwards)")
+            output_df = self._process_new_format(transaction_df)
+        else:
+            self.logger.info("Detected legacy CSV format (pre-2025-03)")
+            output_df = self._process_legacy_format(transaction_df)
             
-        # Filter to only keep transactions (stop at end markers)
-        transaction_df = self._filter_transactions(transaction_df)
-        
-        # Extract required columns
-        required_cols = ['Posting Date', 'Description', 'Debit Amount', 'Credit Amount']
-        mapped_data = {}
-        
-        for req_col in required_cols:
-            if req_col in column_mapping:
-                mapped_data[req_col] = transaction_df[column_mapping[req_col]]
-            else:
-                self.logger.error(f"Required column '{req_col}' not found")
-                return None
-                
-        # Create output DataFrame
-        output_df = pd.DataFrame(mapped_data)
+        if output_df is None:
+            return None
         
         # Add account information
         account_type = metadata['account_type']
@@ -242,19 +230,27 @@ class BDOParser:
         """Clean and validate the extracted data."""
         cleaned_df = df.copy()
         
-        # Clean date column
-        cleaned_df['Date'] = cleaned_df['Posting Date'].apply(self._clean_date)
-        
-        # Clean description
-        cleaned_df['Description'] = cleaned_df['Description'].apply(self._clean_description)
-        
-        # Clean monetary amounts
-        cleaned_df['Debit'] = cleaned_df['Debit Amount'].apply(self._clean_amount)
-        cleaned_df['Credit'] = cleaned_df['Credit Amount'].apply(self._clean_amount)
-        
-        # Select final columns
-        final_columns = ['Date', 'Description', 'Debit', 'Credit', 'Account', 'Transfer Account']
-        cleaned_df = cleaned_df[final_columns]
+        # Check if data is already in final format (from new format processing)
+        expected_final_columns = ['Date', 'Description', 'Debit', 'Credit', 'Account', 'Transfer Account']
+        if all(col in cleaned_df.columns for col in expected_final_columns[:4]):
+            # Data is already cleaned, just ensure proper column order
+            final_columns = ['Date', 'Description', 'Debit', 'Credit', 'Account', 'Transfer Account']
+            cleaned_df = cleaned_df[final_columns]
+        else:
+            # Legacy format processing
+            # Clean date column
+            cleaned_df['Date'] = cleaned_df['Posting Date'].apply(self._clean_date)
+            
+            # Clean description
+            cleaned_df['Description'] = cleaned_df['Description'].apply(self._clean_description)
+            
+            # Clean monetary amounts
+            cleaned_df['Debit'] = cleaned_df['Debit Amount'].apply(self._clean_amount)
+            cleaned_df['Credit'] = cleaned_df['Credit Amount'].apply(self._clean_amount)
+            
+            # Select final columns
+            final_columns = ['Date', 'Description', 'Debit', 'Credit', 'Account', 'Transfer Account']
+            cleaned_df = cleaned_df[final_columns]
         
         # Remove rows with invalid dates
         cleaned_df = cleaned_df[cleaned_df['Date'].notna()]
@@ -327,3 +323,118 @@ class BDOParser:
         
         # All other transactions left blank for manual coding
         return ''
+        
+    def _is_new_format(self, columns) -> bool:
+        """Detect if this is the new CSV format (2025-03 onwards)."""
+        new_format_indicators = ['Book date', 'Credit/debit indicator', 'Account number(BBAN)']
+        column_str = ' '.join(str(col) for col in columns)
+        
+        # Check if we have key indicators of the new format
+        matches = sum(1 for indicator in new_format_indicators if indicator in column_str)
+        return matches >= 2  # Need at least 2 indicators
+        
+    def _process_new_format(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
+        """Process the new CSV format (2025-03 onwards)."""
+        try:
+            # Required columns for new format
+            required_columns = ['Book date', 'Description', 'Amount', 'Credit/debit indicator']
+            
+            # Check if all required columns exist
+            missing_cols = [col for col in required_columns if col not in df.columns]
+            if missing_cols:
+                self.logger.error(f"Missing required columns in new format: {missing_cols}")
+                return None
+                
+            # Filter valid transactions
+            df_filtered = df[df['Book date'].notna() & df['Description'].notna()].copy()
+            
+            if df_filtered.empty:
+                return None
+                
+            # Convert to standardized format
+            output_data = []
+            
+            for _, row in df_filtered.iterrows():
+                # Clean and parse date
+                date_str = self._clean_date_new_format(row['Book date'])
+                if not date_str:
+                    continue
+                    
+                # Parse amount and debit/credit indicator
+                amount = self._clean_amount(row['Amount'])
+                indicator = str(row['Credit/debit indicator']).strip().lower()
+                
+                # Skip if no valid amount
+                if not amount:
+                    continue
+                
+                # Determine debit/credit based on indicator
+                debit = amount if indicator == 'debit' else ''
+                credit = amount if indicator == 'credit' else ''
+                
+                output_data.append({
+                    'Date': date_str,
+                    'Description': self._clean_description(row['Description']),
+                    'Debit': debit,
+                    'Credit': credit
+                })
+                
+            return pd.DataFrame(output_data)
+            
+        except Exception as e:
+            self.logger.error(f"Error processing new format: {e}")
+            return None
+            
+    def _process_legacy_format(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
+        """Process the legacy CSV format (pre-2025-03)."""
+        # Map columns to expected names
+        column_mapping = self._map_columns(df.columns)
+        if not column_mapping:
+            self.logger.error("Could not map required columns")
+            return None
+            
+        # Filter to only keep transactions (stop at end markers)
+        df = self._filter_transactions(df)
+        
+        # Extract required columns
+        required_cols = ['Posting Date', 'Description', 'Debit Amount', 'Credit Amount']
+        mapped_data = {}
+        
+        for req_col in required_cols:
+            if req_col in column_mapping:
+                mapped_data[req_col] = df[column_mapping[req_col]]
+            else:
+                self.logger.error(f"Required column '{req_col}' not found")
+                return None
+                
+        # Create output DataFrame
+        output_df = pd.DataFrame(mapped_data)
+        
+        # Return raw data for processing by _clean_data method
+        return output_df
+        
+    def _clean_date_new_format(self, date_str: str) -> Optional[str]:
+        """Clean and convert date string from new format to YYYY-MM-DD format."""
+        if pd.isna(date_str):
+            return None
+            
+        date_str = str(date_str).strip()
+        
+        # New format supports multiple date styles
+        formats = [
+            '%d-%m-%Y',     # "30-06-2025" (new DD-MM-YYYY format)
+            '%b %d, %Y',    # "Mar 31, 2025" (original new format)
+            '%B %d, %Y',    # "March 31, 2025"  
+            '%m/%d/%Y',     # "03/31/2025"
+            '%Y-%m-%d',     # "2025-03-31"
+        ]
+        
+        for fmt in formats:
+            try:
+                parsed_date = datetime.strptime(date_str, fmt)
+                return parsed_date.strftime('%Y-%m-%d')
+            except ValueError:
+                continue
+                
+        self.logger.warning(f"Could not parse date from new format: {date_str}")
+        return None
