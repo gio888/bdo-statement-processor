@@ -91,8 +91,8 @@ My_Transactions BDO [Checking|Savings] [account_number] YYYY-MM-DD.csv
 ```
 
 **Examples:**
-- `My_Transactions BDO Checking 007318007064 2025-06-30.csv`
-- `My_Transactions BDO Savings 007310159087 2025-06-30.csv`
+- `My_Transactions BDO Checking xxxx 2025-06-30.csv`
+- `My_Transactions BDO Savings xxxx 2025-06-30.csv`
 
 ### Supported CSV Formats
 
@@ -128,11 +128,6 @@ for_import_My_Transactions BDO YYYY-MM.csv
 Each monthly file contains:
 ```csv
 Date,Description,Debit,Credit,Account,Transfer Account
-6/30/2025,INTEREST WITHHELD,0.62,,Assets:Current Assets:Banks Local:BDO Current,Expenses:Banking Costs:Interest
-6/30/2025,INTEREST PAY SYS-GEN,,3.10,Assets:Current Assets:Banks Local:BDO Current,Income:Interest Income
-6/30/2025,FT-NDBWEB-20250601-46189953 DBFT,156079.25,,Assets:Current Assets:Banks Local:BDO Current,
-6/30/2025,INTEREST WITHHELD,0.31,,Assets:Current Assets:Banks Local:BDO Savings,Expenses:Banking Costs:Interest
-6/30/2025,INTEREST PAY SYS-GEN,,1.56,Assets:Current Assets:Banks Local:BDO Savings,Income:Interest Income
 ```
 
 ### Account Mappings
@@ -159,18 +154,18 @@ $ python main.py --monthly
    - 2025-06 (2 files: Checking + Savings)
 
 🔄 Processing 2025-04...
-✅ Processed 2 transactions from My_Transactions BDO Checking 007318007064 2025-04-30.csv
-✅ Processed 2 transactions from My_Transactions BDO Savings 007310159087 2025-04-30.csv
+✅ Processed 2 transactions from My_Transactions BDO Checking xxxx 2025-04-30.csv
+✅ Processed 2 transactions from My_Transactions BDO Savings xxxx 2025-04-30.csv
 ✅ Created: for_import_My_Transactions BDO 2025-04.csv
 
 🔄 Processing 2025-05...
-✅ Processed 3 transactions from My_Transactions BDO Checking 007318007064 2025-05-31.csv
-✅ Processed 2 transactions from My_Transactions BDO Savings 007310159087 2025-05-31.csv
+✅ Processed 3 transactions from My_Transactions BDO Checking xxxx 2025-05-31.csv
+✅ Processed 2 transactions from My_Transactions BDO Savings xxxx 2025-05-31.csv
 ✅ Created: for_import_My_Transactions BDO 2025-05.csv
 
 🔄 Processing 2025-06...
-✅ Processed 3 transactions from My_Transactions BDO Checking 007318007064 2025-06-30.csv
-✅ Processed 5 transactions from My_Transactions BDO Savings 007310159087 2025-06-30.csv
+✅ Processed 3 transactions from My_Transactions BDO Checking xxxx 2025-06-30.csv
+✅ Processed 5 transactions from My_Transactions BDO Savings xxxx 2025-06-30.csv
 ✅ Created: for_import_My_Transactions BDO 2025-06.csv
 
 📊 SUMMARY: Processed 3 of 3 months
