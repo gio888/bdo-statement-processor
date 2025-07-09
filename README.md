@@ -6,7 +6,7 @@ A robust Python application to process BDO bank statement CSV files, extract tra
 
 ```bash
 # Setup (one-time)
-cd /Users/gio/Code/bdo-statement-processor
+cd /path/to/bdo-statement-processor
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -39,7 +39,7 @@ python main.py --monthly
 
 1. Navigate to project directory:
    ```bash
-   cd /Users/gio/Code/bdo-statement-processor
+   cd /path/to/bdo-statement-processor
    ```
 
 2. Install dependencies:
@@ -91,8 +91,8 @@ My_Transactions BDO [Checking|Savings] [account_number] YYYY-MM-DD.csv
 ```
 
 **Examples:**
-- `My_Transactions BDO Checking xxxx 2025-06-30.csv`
-- `My_Transactions BDO Savings xxxx 2025-06-30.csv`
+- `My_Transactions BDO Checking XXXXXXXXX 2025-06-30.csv`
+- `My_Transactions BDO Savings YYYYYYYYY 2025-06-30.csv`
 
 ### Supported CSV Formats
 
@@ -128,6 +128,8 @@ for_import_My_Transactions BDO YYYY-MM.csv
 Each monthly file contains:
 ```csv
 Date,Description,Debit,Credit,Account,Transfer Account
+6/30/2025,INTEREST WITHHELD,0.62,,Assets:Current Assets:Banks Local:BDO Current,Expenses:Banking Costs:Interest
+6/30/2025,INTEREST PAY SYS-GEN,,3.10,Assets:Current Assets:Banks Local:BDO Current,Income:Interest Income
 ```
 
 ### Account Mappings
@@ -154,18 +156,18 @@ $ python main.py --monthly
    - 2025-06 (2 files: Checking + Savings)
 
 🔄 Processing 2025-04...
-✅ Processed 2 transactions from My_Transactions BDO Checking xxxx 2025-04-30.csv
-✅ Processed 2 transactions from My_Transactions BDO Savings xxxx 2025-04-30.csv
+✅ Processed 2 transactions from My_Transactions BDO Checking XXXXXXXXX 2025-04-30.csv
+✅ Processed 2 transactions from My_Transactions BDO Savings YYYYYYYYY 2025-04-30.csv
 ✅ Created: for_import_My_Transactions BDO 2025-04.csv
 
 🔄 Processing 2025-05...
-✅ Processed 3 transactions from My_Transactions BDO Checking xxxx 2025-05-31.csv
-✅ Processed 2 transactions from My_Transactions BDO Savings xxxx 2025-05-31.csv
+✅ Processed 3 transactions from My_Transactions BDO Checking XXXXXXXXX 2025-05-31.csv
+✅ Processed 2 transactions from My_Transactions BDO Savings YYYYYYYYY 2025-05-31.csv
 ✅ Created: for_import_My_Transactions BDO 2025-05.csv
 
 🔄 Processing 2025-06...
-✅ Processed 3 transactions from My_Transactions BDO Checking xxxx 2025-06-30.csv
-✅ Processed 5 transactions from My_Transactions BDO Savings xxxx 2025-06-30.csv
+✅ Processed 3 transactions from My_Transactions BDO Checking XXXXXXXXX 2025-06-30.csv
+✅ Processed 5 transactions from My_Transactions BDO Savings YYYYYYYYY 2025-06-30.csv
 ✅ Created: for_import_My_Transactions BDO 2025-06.csv
 
 📊 SUMMARY: Processed 3 of 3 months
@@ -186,7 +188,7 @@ Key configuration options in `config.py`:
 
 Default location:
 ```
-/Users/gio/Library/CloudStorage/GoogleDrive-gbacareza@gmail.com/My Drive/Money/BDO
+/path/to/your/bdo/statements
 ```
 
 Override with: `--input-dir "/path/to/bdo/files"`

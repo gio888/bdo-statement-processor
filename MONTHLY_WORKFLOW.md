@@ -26,16 +26,16 @@ The v2.0 monthly workflow automatically detects and processes ALL unprocessed mo
 
 1. **Log into BDO online banking**
 2. **Download CSV statements** for both accounts:
-   - Checking account (xxxx)
-   - Savings account (xxxx)
+   - Checking account (XXXXXXXXX)
+   - Savings account (YYYYYYYYY)
 3. **Save to designated folder**:
    ```
-   /Users/gio/Library/CloudStorage/GoogleDrive-gbacareza@gmail.com/My Drive/Money/BDO
+   /path/to/your/bdo/statements
    ```
 4. **Verify naming pattern**:
    ```
-   My_Transactions BDO Checking xxxx 2025-06-30.csv
-   My_Transactions BDO Savings xxxx 2025-06-30.csv
+   My_Transactions BDO Checking XXXXXXXXX 2025-06-30.csv
+   My_Transactions BDO Savings YYYYYYYYY 2025-06-30.csv
    ```
 
 ### Step 2: Run Monthly Processing
@@ -43,7 +43,7 @@ The v2.0 monthly workflow automatically detects and processes ALL unprocessed mo
 1. **Open Terminal**
 2. **Navigate to project**:
    ```bash
-   cd /Users/gio/Code/bdo-statement-processor
+   cd /path/to/bdo-statement-processor
    ```
 3. **Activate environment**:
    ```bash
@@ -65,18 +65,18 @@ The system will automatically:
    - 2025-06 (2 files: Checking + Savings)
 
 🔄 Processing 2025-04...
-✅ Processed 2 transactions from My_Transactions BDO Checking xxxx 2025-04-30.csv
-✅ Processed 2 transactions from My_Transactions BDO Savings xxxx 2025-04-30.csv
+✅ Processed 2 transactions from My_Transactions BDO Checking XXXXXXXXX 2025-04-30.csv
+✅ Processed 2 transactions from My_Transactions BDO Savings YYYYYYYYY 2025-04-30.csv
 ✅ Created: for_import_My_Transactions BDO 2025-04.csv
 
 🔄 Processing 2025-05...
-✅ Processed 3 transactions from My_Transactions BDO Checking xxxx 2025-05-31.csv  
-✅ Processed 2 transactions from My_Transactions BDO Savings xxxx 2025-05-31.csv
+✅ Processed 3 transactions from My_Transactions BDO Checking XXXXXXXXX 2025-05-31.csv  
+✅ Processed 2 transactions from My_Transactions BDO Savings YYYYYYYYY 2025-05-31.csv
 ✅ Created: for_import_My_Transactions BDO 2025-05.csv
 
 🔄 Processing 2025-06...
-✅ Processed 3 transactions from My_Transactions BDO Checking xxxx 2025-06-30.csv
-✅ Processed 5 transactions from My_Transactions BDO Savings xxxx 2025-06-30.csv
+✅ Processed 3 transactions from My_Transactions BDO Checking XXXXXXXXX 2025-06-30.csv
+✅ Processed 5 transactions from My_Transactions BDO Savings YYYYYYYYY 2025-06-30.csv
 ✅ Created: for_import_My_Transactions BDO 2025-06.csv
 
 📊 SUMMARY: Processed 3 of 3 months
@@ -131,6 +131,8 @@ for_import_My_Transactions BDO 2025-04.csv
 
 ```csv
 Date,Description,Debit,Credit,Account,Transfer Account
+6/30/2025,INTEREST WITHHELD,0.62,,Assets:Current Assets:Banks Local:BDO Current,Expenses:Banking Costs:Interest
+6/30/2025,INTEREST PAY SYS-GEN,,3.10,Assets:Current Assets:Banks Local:BDO Current,Income:Interest Income
 ```
 
 ## Supported BDO CSV Formats
@@ -140,19 +142,21 @@ The system automatically detects and handles:
 ### Legacy Format (pre-2025-03)
 ```
 Posting Date,Description,Branch,Debit Amount,Credit Amount,Running Balance
-
+Feb 29, 2024,INTEREST PAY SYS-GEN,MAIN,0.00,2.33,15233.45
 ```
 
 ### New Format v1 (2025-03)  
 ```
 Account number(BBAN),Description,Book date,Amount,Credit/debit indicator
 
+XXXXXXXXX,INTEREST PAY SYS-GEN,"Mar 31, 2025",2.44,Credit
 ```
 
 ### New Format v2 (2025-04+)
 ```
 Account number(IBAN),Account number(BBAN),Description,Book date,Amount,Credit/debit indicator
 
+,XXXXXXXXX,INTEREST PAY SYS-GEN,30-06-2025,3.10,Credit
 ```
 
 ## Scenarios & Examples
@@ -203,11 +207,11 @@ Account number(IBAN),Account number(BBAN),Description,Book date,Amount,Credit/de
 
 ```
 BDO Folder/
-├── My_Transactions BDO Checking xxxx 2025-06-30.csv (input)
-├── My_Transactions BDO Savings xxxx 2025-06-30.csv (input)
+├── My_Transactions BDO Checking XXXXXXXXX 2025-06-30.csv (input)
+├── My_Transactions BDO Savings YYYYYYYYY 2025-06-30.csv (input)
 ├── for_import_My_Transactions BDO 2025-06.csv (📁 COMBINED OUTPUT)
-├── My_Transactions BDO Checking xxxx 2025-05-31.csv (input)
-├── My_Transactions BDO Savings xxxx 2025-05-31.csv (input)
+├── My_Transactions BDO Checking XXXXXXXXX 2025-05-31.csv (input)
+├── My_Transactions BDO Savings YYYYYYYYY 2025-05-31.csv (input)
 └── for_import_My_Transactions BDO 2025-05.csv (📁 COMBINED OUTPUT)
 ```
 

@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 # File processing settings
-DEFAULT_INPUT_DIR = "/Users/gio/Library/CloudStorage/GoogleDrive-gbacareza@gmail.com/My Drive/Money/BDO"
+DEFAULT_INPUT_DIR = "/path/to/your/bdo/statements"
 FILE_PATTERN = r"^My_Transactions BDO (Checking|Savings) (\d+) (\d{4}-\d{2}-\d{2})\.csv$"
 MIN_PROCESS_DATE = datetime(2024, 2, 1)
 
